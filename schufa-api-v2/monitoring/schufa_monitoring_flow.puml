@@ -1,0 +1,40 @@
+@startuml Monitoring flow
+skinparam sequenceMessageAlign center
+autonumber
+actor Client
+
+group order monitoring
+    Client -> RDAPI: POST\n /api/v1/schufa/economy-reports/123456/compact/monitoring
+    RDAPI -> Client: 200 OK
+end
+
+group get status of monitoring order
+    Client -> RDAPI: GET\n /api/v1/schufa/economy-reports/123456/compact/monitoring/status
+    RDAPI -> Client: 200 OK {active: true}
+end
+
+group fetch monitoring updates
+    group get first reference ID
+        Client -> RDAPI: GET /api/v1/schufa/monitorings?companyID=123456
+        RDAPI -> Client: 200 OK {retrievalReference: xyzzy}
+    end
+    group fetch updates using the reference IDs
+        loop until retrievalReference is empty
+            Client -> RDAPI: GET /api/v1/schufa/monitorings/xyzzy
+            RDAPI -> Client: 200 OK {requestStatus: READY, report: {...}, retrievalReference: zyxxy}
+        end
+    end
+    note right
+        The retrieval reference used in step 7
+        will be "xyzzy" (as obtained in step 6)
+        on the first call, and will be replaced
+        with the retrieval reference contained
+        in the returned  object for every
+        subsequent call.
+    end note
+end
+group cancel monitoring service
+    Client -> RDAPI: DELETE\n /api/v1/schufa/economy-reports/123456/compact/monitoring
+    RDAPI -> Client: 200 OK
+end
+@enduml
